@@ -50,7 +50,7 @@ Run it:
 npm run dev
 ```
 
-Open http://localhost:3000. Signup is restricted to `@eccoucil.org` email addresses.
+Open http://localhost:3000. Signup is restricted to `@eccouncil.org` email addresses.
 
 ## Docker
 
