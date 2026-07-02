@@ -25,3 +25,6 @@ CREATE INDEX idx_tasks_status              ON tasks(project_id, status);
 CREATE INDEX idx_tasks_priority            ON tasks(project_id, priority);
 CREATE INDEX idx_tasks_due_date            ON tasks(due_date) WHERE due_date IS NOT NULL AND status != 'done';
 CREATE INDEX idx_tasks_created_at          ON tasks(project_id, created_at DESC);
+
+-- TASK COMMENTS
+CREATE INDEX idx_task_comments_task        ON task_comments(task_id, created_at);

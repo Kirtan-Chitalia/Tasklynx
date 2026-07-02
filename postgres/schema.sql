@@ -102,10 +102,24 @@ CREATE TABLE tasks (
                     CHECK (status IN ('todo','in_progress','in_review','done','cancelled')),
     priority        VARCHAR(10) NOT NULL DEFAULT 'medium'
                     CHECK (priority IN ('critical','high','medium','low')),
+    story_points    INTEGER NOT NULL DEFAULT 3
+                    CHECK (story_points IN (1,2,3,5,8,13,21)),
     due_date        TIMESTAMPTZ,
     completed_at    TIMESTAMPTZ,
     assignee_id     UUID REFERENCES users(id) ON DELETE SET NULL,
     created_by      UUID NOT NULL REFERENCES users(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
+-- TASK COMMENTS
+-- =============================================================================
+
+CREATE TABLE task_comments (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id         UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message         TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
