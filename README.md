@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PM Platform
 
-## Getting Started
+A minimal project management app: email/OTP auth, projects, tasks, and project members. Built with Next.js 16 (App Router), TypeScript, Tailwind CSS, and PostgreSQL (via the `pg` pool — no ORM).
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 20+
+- PostgreSQL 16
+
+## Local setup
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a database and load the schema, in order:
+
+```bash
+createdb pmplatform
+
+cd postgres
+psql -d pmplatform -f init.sql
+psql -d pmplatform -f schema.sql
+psql -d pmplatform -f constraints.sql
+psql -d pmplatform -f indexes.sql
+psql -d pmplatform -f triggers.sql
+psql -d pmplatform -f seed.sql
+```
+
+Create `.env.local` in the project root:
+
+```
+DATABASE_URL=postgresql://<user>:<password>@localhost:5432/pmplatform
+JWT_SECRET=any-random-string-for-dev
+
+# Optional — without these, the signup OTP is logged to the console and
+# returned as `devOTP` in the API response instead of being emailed.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+```
+
+Run it:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Signup is restricted to `@eccoucil.org` email addresses.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Docker
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+docker compose up -d
+```
 
-## Learn More
+This starts Postgres (schema auto-loaded on first boot) and the app, both wired together — no manual setup needed.
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/page.tsx                        Login / signup / OTP verification
+app/dashboard/page.tsx               Dashboard (protected)
+app/projects/page.tsx                Project list + create
+app/projects/[id]/page.tsx           Project detail: overview, tasks, members
+app/api/auth/*                       Signup, login, logout, OTP, session
+app/api/projects/*                   Project + task + member CRUD
+app/api/users/route.ts               Org user directory
+lib/db.ts                            Postgres pool + query helpers
+lib/auth.ts                          JWT + cookie helpers
+lib/mail.ts                          OTP email delivery (nodemailer)
+lib/store.ts                         In-memory user/OTP store (auth is not yet Postgres-backed)
+postgres/*.sql                       Schema, in docker-entrypoint-initdb.d run order
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Auth currently lives in an in-memory store + JWT cookie, not Postgres. The `users` table gets a row lazily created for you on first authenticated API call, so projects/tasks/members work against real foreign keys.
+- The default organization (`00000000-0000-0000-0000-000000000001`) is seeded automatically.

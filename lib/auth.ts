@@ -46,38 +46,6 @@ export async function getAuthToken() {
   return cookieStore.get(COOKIE_NAME)?.value ?? null
 }
 
-// ─── Password validation ─────────────────────────────────────────────────────
-
-export interface PasswordStrength {
-  score: number       // 0-4
-  label: string
-  errors: string[]
-  color: string
-}
-
-export function checkPasswordStrength(password: string): PasswordStrength {
-  const errors: string[] = []
-
-  if (password.length < 8)         errors.push('At least 8 characters required')
-  if (!/[A-Z]/.test(password))     errors.push('At least one uppercase letter')
-  if (!/[a-z]/.test(password))     errors.push('At least one lowercase letter')
-  if (!/[0-9]/.test(password))     errors.push('At least one number')
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
-                                   errors.push('At least one special character')
-
-  const score = Math.max(0, 5 - errors.length) - 1 // 0-4
-
-  const labels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong']
-  const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a']
-
-  return {
-    score: Math.max(0, score),
-    label: labels[Math.max(0, score)],
-    errors,
-    color: colors[Math.max(0, score)],
-  }
-}
-
 // ─── OTP generator ───────────────────────────────────────────────────────────
 
 export function generateOTP(): string {

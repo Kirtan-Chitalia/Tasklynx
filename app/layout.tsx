@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Auth App',
-  description: 'Next.js auth with HTTP cookies and OTP',
+  title: 'PM Platform',
+  description: 'Projects and tasks, kept simple',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

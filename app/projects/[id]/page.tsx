@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import AppHeader from '@/components/AppHeader'
+import { STATUS_STYLES, PRIORITY_STYLES } from '@/lib/badges'
 
 interface UserData { id: string; email: string }
 
@@ -42,19 +44,6 @@ const PROJECT_STATUSES = ['planning', 'active', 'on_hold', 'completed', 'archive
 const PRIORITIES = ['critical', 'high', 'medium', 'low']
 const TASK_STATUSES = ['todo', 'in_progress', 'in_review', 'done', 'cancelled']
 const ROLES = ['owner', 'manager', 'contributor', 'reviewer', 'observer']
-
-const STATUS_STYLES: Record<string, string> = {
-  planning: 'bg-[#f3f4f6] text-[#374151]', active: 'bg-[#f0fdf4] text-[#15803d]',
-  on_hold: 'bg-[#fefce8] text-[#a16207]', completed: 'bg-[#eff6ff] text-[#1d4ed8]',
-  archived: 'bg-[#f3f4f6] text-[#6b7280]', cancelled: 'bg-[#fef2f2] text-[#b91c1c]',
-  todo: 'bg-[#f3f4f6] text-[#374151]', in_progress: 'bg-[#eff6ff] text-[#1d4ed8]',
-  in_review: 'bg-[#fefce8] text-[#a16207]', done: 'bg-[#f0fdf4] text-[#15803d]',
-}
-
-const PRIORITY_STYLES: Record<string, string> = {
-  critical: 'bg-[#fef2f2] text-[#b91c1c]', high: 'bg-[#fff7ed] text-[#c2410c]',
-  medium: 'bg-[#fefce8] text-[#a16207]', low: 'bg-[#f3f4f6] text-[#6b7280]',
-}
 
 export default function ProjectDetailPage() {
   const router = useRouter()
@@ -231,34 +220,7 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#f9fafb]">
-      <header className="bg-white border-b border-[#e5e7eb]">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#111827] flex items-center justify-center text-white text-xs font-semibold">
-                PM
-              </div>
-              <span className="text-sm font-semibold text-[#111827]">PM Platform</span>
-            </div>
-            <nav className="flex items-center gap-5">
-              <Link href="/dashboard" className="text-[13px] text-[#6b7280] hover:text-[#111827] transition-colors">Dashboard</Link>
-              <Link href="/projects" className="text-[13px] text-[#111827] font-medium">Projects</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#111827] flex items-center justify-center text-white text-xs font-medium">
-                {user?.email?.[0]?.toUpperCase()}
-              </div>
-              <span className="text-[13px] text-[#111827]">{user?.email}</span>
-            </div>
-            <button onClick={handleLogout}
-              className="px-3 py-1.5 border border-[#e5e7eb] text-[#6b7280] hover:text-[#111827] hover:border-[#111827] text-[13px] font-medium rounded-lg transition-colors">
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader email={user?.email} active="projects" onLogout={handleLogout} />
 
       <main className="max-w-5xl mx-auto px-6 py-10">
         <Link href="/projects" className="text-[13px] text-[#6b7280] hover:text-[#111827] transition-colors">← All projects</Link>
