@@ -7,7 +7,20 @@ import { toast } from 'sonner'
 import AppShell from '@/components/AppShell'
 import Skeleton from '@/components/Skeleton'
 import AnimatedNumber from '@/components/AnimatedNumber'
+import StatusDonutChart, { DonutSlice } from '@/components/StatusDonutChart'
+import { useTheme } from '@/hooks/useTheme'
 import { STATUS_STYLES, STATUS_LABELS, PRIORITY_DOT } from '@/lib/badges'
+
+// Fixed status tokens (validated for CVD separation + contrast) — same hues as
+// the badges elsewhere, snapped to values that hold up in a chart context.
+const STATUS_CHART_COLORS: Record<string, { light: string; dark: string }> = {
+  todo: { light: '#A8A8A8', dark: '#A8A8A8' },
+  in_progress: { light: '#525252', dark: '#D4D4D4' },
+  in_review: { light: '#fab219', dark: '#fab219' },
+  done: { light: '#0ca30c', dark: '#0ca30c' },
+  cancelled: { light: '#d03b3b', dark: '#d03b3b' },
+}
+const STATUS_ORDER = ['todo', 'in_progress', 'in_review', 'done', 'cancelled']
 
 interface UserData {
   id: string
@@ -38,6 +51,7 @@ interface Task {
 
 export default function Dashboard() {
   const router = useRouter()
+  const { theme } = useTheme()
   const [user, setUser] = useState<UserData | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [myTasks, setMyTasks] = useState<Task[]>([])
@@ -58,7 +72,7 @@ export default function Dashboard() {
         return r.json()
       })
       .then((data) => setUser(data.user))
-      .catch(() => router.push('/'))
+      .catch(() => router.push('/login'))
   }, [router])
 
   useEffect(() => {
@@ -75,7 +89,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/')
+    router.push('/login')
   }
 
   const handleCreate = async () => {
@@ -100,6 +114,13 @@ export default function Dashboard() {
   const doneTasks = projects.reduce((sum, p) => sum + Number(p.done_task_count), 0)
   const openMyTasks = myTasks.filter((t) => t.status !== 'done' && t.status !== 'cancelled')
   const completedMyTasks = myTasks.filter((t) => t.status === 'done')
+
+  const statusSlices: DonutSlice[] = STATUS_ORDER.map((status) => ({
+    key: status,
+    label: STATUS_LABELS[status] || status,
+    count: myTasks.filter((t) => t.status === status).length,
+    color: theme === 'dark' ? STATUS_CHART_COLORS[status].dark : STATUS_CHART_COLORS[status].light,
+  }))
 
   return (
     <AppShell active="dashboard" pageTitle="Dashboard" email={user?.email || ''} onLogout={handleLogout}>
@@ -183,6 +204,20 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-xl shadow-sm p-6 mb-8 transition-all duration-150 hover:shadow-[0_4px_12px_rgba(0,0,0,0.10)]">
+          <h2 className="text-sm font-semibold text-[#0A0A0A] dark:text-white mb-4">My tasks by status</h2>
+          {loading ? (
+            <div className="flex items-center gap-6">
+              <Skeleton className="w-[168px] h-[168px] rounded-full shrink-0" />
+              <div className="flex-1 space-y-2">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-5" />)}</div>
+            </div>
+          ) : myTasks.length === 0 ? (
+            <p className="text-[13px] text-[#6B7280] dark:text-[#9CA3AF]">No tasks assigned to you yet — nothing to chart.</p>
+          ) : (
+            <StatusDonutChart slices={statusSlices} />
+          )}
         </div>
 
         {!loading && totalTasks > 0 && (
