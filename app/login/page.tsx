@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { checkPasswordStrength } from '@/lib/password'
 
 type Mode = 'login' | 'signup' | 'otp'
@@ -23,8 +23,17 @@ function CheckIcon({ met }: { met: boolean }) {
 }
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPageInner />
+    </Suspense>
+  )
+}
+
+function AuthPageInner() {
   const router = useRouter()
-  const [mode, setMode] = useState<Mode>('login')
+  const searchParams = useSearchParams()
+  const [mode, setMode] = useState<Mode>(searchParams.get('mode') === 'signup' ? 'signup' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)

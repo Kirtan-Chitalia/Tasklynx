@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, useMotionValue, useSpring } from 'framer-motion'
 import AnimatedNumber from '@/components/AnimatedNumber'
+import RoadmapPreview from '@/components/RoadmapPreview'
 
 const FEATURES = [
   {
@@ -35,6 +36,16 @@ const FEATURES = [
     title: 'Dark mode that actually matches',
     body: "Every surface — panels, boards, popovers — switches together. It's not an afterthought toggle, it's a first-class theme.",
     demo: 'theme',
+  },
+  {
+    title: 'Roles that actually mean something',
+    body: 'Owner, manager, contributor, reviewer, observer — each sees and can do exactly what their role allows, on every project, automatically.',
+    demo: 'team',
+  },
+  {
+    title: 'Every action confirms itself',
+    body: 'Move a card, add a comment, invite a teammate — a toast tells you it worked, instantly, and rolls back cleanly if it didn’t. No wondering if the click registered.',
+    demo: 'toast',
   },
 ]
 
@@ -72,10 +83,16 @@ export default function LandingPage() {
             <span className="w-2 h-2 rounded-full bg-[#E5002B]" />
             <span className="font-semibold tracking-tight">Tasklynx</span>
           </div>
-          <Link href="/login"
-            className="px-4 py-2 bg-[#E5002B] hover:bg-[#CC0025] active:scale-[0.98] text-white text-[13px] font-medium rounded-lg transition-all duration-150">
-            Sign in
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/login"
+              className="px-4 py-2 text-[13px] font-medium rounded-lg border border-transparent hover:border-[#E5E7EB] dark:hover:border-[#2A2A2A] transition-colors">
+              Sign in
+            </Link>
+            <Link href="/login?mode=signup"
+              className="px-4 py-2 bg-[#E5002B] hover:bg-[#CC0025] active:scale-[0.98] text-white text-[13px] font-medium rounded-lg transition-all duration-150">
+              Create account
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -142,7 +159,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="flex items-center justify-center gap-3"
           >
-            <Link href="/login"
+            <Link href="/login?mode=signup"
               className="px-5 py-3 bg-[#E5002B] hover:bg-[#CC0025] active:scale-[0.98] text-white text-sm font-medium rounded-lg transition-all duration-150 shadow-[0_8px_24px_rgba(229,0,43,0.25)]">
               Get started free
             </Link>
@@ -154,6 +171,21 @@ export default function LandingPage() {
         </div>
 
         <HeroPreview />
+      </section>
+
+      {/* Roadmap */}
+      <section className="px-6 pb-24">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5 }}
+          className="text-center max-w-2xl mx-auto mb-10"
+        >
+          <h2 className="text-3xl font-semibold tracking-tight mb-3">Built in the open, shipped in order</h2>
+          <p className="text-[#6B7280] dark:text-[#9CA3AF]">A live look at how the pieces you use today came together.</p>
+        </motion.div>
+        <RoadmapPreview />
       </section>
 
       {/* Marquee */}
@@ -395,13 +427,52 @@ function FeatureDemo({ kind }: { kind: string }) {
     )
   }
 
-  return (
-    <div className={base}>
-      <motion.div
-        className="w-16 h-16 rounded-full"
-        animate={{ background: ['#F8F8F8', '#0A0A0A', '#F8F8F8'] }}
-        transition={{ duration: 3, repeat: Infinity }}
-      />
-    </div>
-  )
+  if (kind === 'theme') {
+    return (
+      <div className={base}>
+        <motion.div
+          className="w-16 h-16 rounded-full"
+          animate={{ background: ['#F8F8F8', '#0A0A0A', '#F8F8F8'] }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+      </div>
+    )
+  }
+
+  if (kind === 'team') {
+    const roles = ['Owner', 'Manager', 'Contributor', 'Reviewer']
+    return (
+      <div className={`${base} gap-3`}>
+        {roles.map((r, i) => (
+          <motion.div key={r}
+            className="flex flex-col items-center gap-1.5"
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.3 }}
+          >
+            <span className="w-8 h-8 rounded-full bg-[#E5002B]/70" />
+            <span className="text-[10px] text-[#9CA3AF]">{r}</span>
+          </motion.div>
+        ))}
+      </div>
+    )
+  }
+
+  if (kind === 'toast') {
+    return (
+      <div className={`${base} items-start justify-end p-5`}>
+        <motion.div
+          className="rounded-lg border-l-[3px] border-[#E5002B] bg-white dark:bg-[#1A1A1A] shadow-md px-3 py-2.5 flex items-center gap-2"
+          initial={{ x: 120, opacity: 0 }}
+          whileInView={{ x: 0, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <span className="w-4 h-4 rounded-full bg-[#22C55E] shrink-0" />
+          <div className="h-2 w-24 rounded bg-[#E5E7EB] dark:bg-[#2A2A2A]" />
+        </motion.div>
+      </div>
+    )
+  }
+
+  return null
 }
