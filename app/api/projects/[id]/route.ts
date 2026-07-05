@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
   const project = await queryOne(
     `SELECT id, name, slug, description, status, priority, owner_id, created_by, created_at, updated_at
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     [id]
   )
 
-  return NextResponse.json({ project, members, myRole: membership.role })
+  return NextResponse.json({ project, members, myRole: membership?.role ?? 'admin' })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,9 +39,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-  if (!['owner', 'manager'].includes(membership.role)) {
-    return NextResponse.json({ error: 'Only owners and managers can edit this project' }, { status: 403 })
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (user.role !== 'admin' && membership?.role !== 'project_manager') {
+    return NextResponse.json({ error: 'Only project managers can edit this project' }, { status: 403 })
   }
 
   const { name, description, status, priority } = await req.json()
@@ -75,9 +75,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-  if (membership.role !== 'owner') {
-    return NextResponse.json({ error: 'Only the project owner can delete this project' }, { status: 403 })
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (user.role !== 'admin' && membership?.role !== 'project_manager') {
+    return NextResponse.json({ error: 'Only project managers can delete this project' }, { status: 403 })
   }
 
   await query('DELETE FROM projects WHERE id = $1', [id])

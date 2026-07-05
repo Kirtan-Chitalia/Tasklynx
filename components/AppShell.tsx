@@ -20,7 +20,7 @@ export default function AppShell({ active, pageTitle, email, onLogout, children 
   const [collapsedFlag, setCollapsedFlag] = useLocalStorage(COLLAPSE_KEY, '0')
   const collapsed = collapsedFlag === '1'
   const [displayName, setDisplayName] = useState('')
-  const [role, setRole] = useState('member')
+  const [role, setRole] = useState('user')
 
   const toggleCollapsed = () => setCollapsedFlag(collapsed ? '0' : '1')
 
@@ -30,14 +30,13 @@ export default function AppShell({ active, pageTitle, email, onLogout, children 
       .then((r) => r.json())
       .then((data) => {
         const match = (data.users || []).find((u: { email: string }) => u.email === email)
-        if (match) {
-          setDisplayName(match.display_name)
-          setRole(match.role || 'member')
-        } else {
-          setDisplayName(email.split('@')[0])
-        }
+        setDisplayName(match ? match.display_name : email.split('@')[0])
       })
       .catch(() => setDisplayName(email.split('@')[0]))
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((data) => setRole(data.user?.role || 'user'))
+      .catch(() => {})
   }, [email])
 
   return (

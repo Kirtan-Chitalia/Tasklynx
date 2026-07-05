@@ -35,6 +35,11 @@ Create `.env.local` in the project root:
 DATABASE_URL=postgresql://<user>:<password>@localhost:5432/pmplatform
 JWT_SECRET=any-random-string-for-dev
 
+# Comma-separated list of emails that get the org-wide `admin` role
+# (sees and manages every project). Everyone else is `user`. Role is
+# re-derived from this list on every login.
+ADMIN_EMAILS=you@eccouncil.org
+
 # Optional — without these, the signup OTP is logged to the console and
 # returned as `devOTP` in the API response instead of being emailed.
 SMTP_HOST=
@@ -58,7 +63,12 @@ Open http://localhost:3000. Signup is restricted to `@eccouncil.org` email addre
 docker compose up -d
 ```
 
-This starts Postgres (schema auto-loaded on first boot) and the app, both wired together — no manual setup needed.
+This starts Postgres only (schema auto-loaded on first boot). Run the app itself locally with `npm run dev` against it.
+
+## Roles
+
+- **Org role** (`users.role`): `admin` or `user`. Admins see and manage every project in the org regardless of membership; configured via `ADMIN_EMAILS`, not a management UI. Everyone else only sees projects they're a member of.
+- **Project role** (`project_members.role`): `project_manager`, `developer`, or `viewer`, scoped per project — the same person can be a project manager on one project and a developer on another. Project managers manage the project and its members; developers create/edit tasks; viewers can see everything and comment but not edit. Add someone to a project by searching for them by name or email (`/api/users/search`) and picking a role.
 
 ## Project structure
 

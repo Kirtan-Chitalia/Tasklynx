@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser, query, queryOne } from '@/lib/db'
 
 async function getTaskWithMembership(taskId: string, userId: string) {
-  return queryOne<{ project_id: string; assignee_id: string | null; role: string }>(
+  return queryOne<{ project_id: string; assignee_id: string | null; role: string | null }>(
     `SELECT t.project_id, t.assignee_id, pm.role
      FROM tasks t
-     JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $2
+     LEFT JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $2
      WHERE t.id = $1`,
     [taskId, userId]
   )
@@ -17,7 +17,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ task
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const context = await getTaskWithMembership(taskId, user.userId)
-  if (!context) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  if (!context || (!context.role && user.role !== 'admin')) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  }
 
   const task = await queryOne(
     `SELECT t.id, t.title, t.description, t.status, t.priority, t.story_points, t.due_date,
@@ -38,9 +40,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ta
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const context = await getTaskWithMembership(taskId, user.userId)
-  if (!context) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  if (!context || (!context.role && user.role !== 'admin')) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  }
 
-  const canEdit = ['owner', 'manager', 'contributor'].includes(context.role) || context.assignee_id === user.userId
+  const canEdit = user.role === 'admin' || ['project_manager', 'developer'].includes(context.role ?? '') || context.assignee_id === user.userId
   if (!canEdit) {
     return NextResponse.json({ error: 'You do not have permission to edit this task' }, { status: 403 })
   }
@@ -94,8 +98,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const context = await getTaskWithMembership(taskId, user.userId)
-  if (!context) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
-  if (!['owner', 'manager', 'contributor'].includes(context.role)) {
+  if (!context || (!context.role && user.role !== 'admin')) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  }
+  if (user.role !== 'admin' && !['project_manager', 'developer'].includes(context.role ?? '')) {
     return NextResponse.json({ error: 'You do not have permission to delete this task' }, { status: 403 })
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuthToken, verifyToken } from '@/lib/auth'
 import { users } from '@/lib/store'
+import { ensureUserAndOrg } from '@/lib/db'
 
 export async function GET() {
   const token = await getAuthToken()
@@ -19,12 +20,15 @@ export async function GET() {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
+  const role = await ensureUserAndOrg(payload.userId, payload.email)
+
   return NextResponse.json({
     user: {
       id: user.id,
       email: user.email,
       verified: user.verified,
       createdAt: user.createdAt,
+      role,
     }
   })
 }

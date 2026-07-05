@@ -52,8 +52,7 @@ export default function TaskDrawer({ task, members, myRole, currentUserId, curre
   const open = !!task
   useDismiss(open, onClose, panelRef)
 
-  const canEdit = ['owner', 'manager', 'contributor'].includes(myRole) || task?.assignee_id === currentUserId
-  const canComment = ['owner', 'manager'].includes(myRole)
+  const canEdit = ['admin', 'project_manager', 'developer'].includes(myRole) || task?.assignee_id === currentUserId
 
   if (task && task.id !== loadedTaskId) {
     setLoadedTaskId(task.id)
@@ -220,20 +219,19 @@ export default function TaskDrawer({ task, members, myRole, currentUserId, curre
                   </div>
                 ))}
               </div>
-              <div className="flex gap-2 items-start" title={canComment ? undefined : 'Only managers can comment'}>
+              <div className="flex gap-2 items-start">
                 <Avatar userId={currentUserId} name={currentUserName} size={26} clickable={false} className="mt-0.5" />
                 <div className="flex-1 flex gap-2">
                   <input
                     value={commentText}
-                    disabled={!canComment}
                     onChange={(e) => setCommentText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !postingComment) handleAddComment() }}
-                    placeholder={canComment ? 'Write a comment...' : 'Only managers can comment'}
+                    placeholder="Write a comment..."
                     className="flex-1 text-[13px] bg-[#F8F8F8] dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg px-3 py-2 focus:outline-none focus:border-[#E5002B] disabled:opacity-60 disabled:cursor-not-allowed text-[#0A0A0A] dark:text-white"
                   />
                   <button
                     onClick={handleAddComment}
-                    disabled={!canComment || postingComment || !commentText.trim()}
+                    disabled={postingComment || !commentText.trim()}
                     className="px-3 py-2 bg-[#E5002B] hover:bg-[#CC0025] disabled:opacity-40 text-white text-[13px] font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
                     Send →

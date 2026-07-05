@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
   const tasks = await query(
     `SELECT t.id, t.title, t.description, t.status, t.priority, t.story_points, t.due_date,
@@ -36,8 +36,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-  if (!['owner', 'manager', 'contributor'].includes(membership.role)) {
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (user.role !== 'admin' && !['project_manager', 'developer'].includes(membership?.role ?? '')) {
     return NextResponse.json({ error: 'You do not have permission to create tasks in this project' }, { status: 403 })
   }
 

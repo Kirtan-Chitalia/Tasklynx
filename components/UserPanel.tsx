@@ -124,7 +124,7 @@ export default function UserPanel({ userId, onClose }: { userId: string | null; 
                     <Link key={p.id} href={`/projects/${p.id}`} onClick={onClose}
                       className="flex items-center justify-between py-1.5 px-2 -mx-2 rounded-lg hover:bg-[#F8F8F8] dark:hover:bg-[#1f1f1f] transition-colors">
                       <span className="text-[13px] text-[#0A0A0A] dark:text-white truncate">{p.name}</span>
-                      <span className="shrink-0 ml-2 text-[11px] text-[#9CA3AF] capitalize">{p.role}</span>
+                      <span className="shrink-0 ml-2 text-[11px] text-[#9CA3AF] capitalize">{p.role.replace('_', ' ')}</span>
                     </Link>
                   ))}
                 </div>

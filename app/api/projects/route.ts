@@ -16,6 +16,8 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Admins see every project in the org; everyone else only sees projects
+  // they're a member of (as project_manager, developer, or viewer).
   const projects = await query(
     `SELECT p.id, p.name, p.slug, p.description, p.status, p.priority,
             p.owner_id, p.created_at,
@@ -23,13 +25,15 @@ export async function GET() {
             COUNT(DISTINCT t.id)                                           AS task_count,
             COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'done')          AS done_task_count
      FROM projects p
-     JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = $1
      LEFT JOIN project_members pm2 ON pm2.project_id = p.id
      LEFT JOIN tasks t ON t.project_id = p.id
-     WHERE p.org_id = $2
+     WHERE p.org_id = $1
+       AND ($2::uuid IS NULL OR EXISTS (
+         SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $2
+       ))
      GROUP BY p.id
      ORDER BY p.created_at DESC`,
-    [user.userId, DEFAULT_ORG_ID]
+    [DEFAULT_ORG_ID, user.role === 'admin' ? null : user.userId]
   )
 
   return NextResponse.json({ projects })
@@ -63,7 +67,7 @@ export async function POST(req: NextRequest) {
   )
 
   await query(
-    `INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, 'owner')`,
+    `INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, 'project_manager')`,
     [(project as { id: string }).id, user.userId]
   )
 

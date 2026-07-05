@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
   const members = await query(
     `SELECT pm.user_id, pm.role, pm.joined_at, u.email, u.display_name
@@ -32,13 +32,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-  if (!['owner', 'manager'].includes(membership.role)) {
-    return NextResponse.json({ error: 'Only owners and managers can add members' }, { status: 403 })
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (user.role !== 'admin' && membership?.role !== 'project_manager') {
+    return NextResponse.json({ error: 'Only project managers can add members' }, { status: 403 })
   }
 
   const { email, role } = await req.json()
-  const validRoles = ['owner', 'manager', 'contributor', 'reviewer', 'observer']
+  const validRoles = ['project_manager', 'developer', 'viewer']
   if (!email || typeof email !== 'string') {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 })
   }
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const member = await queryOne(
     `INSERT INTO project_members (project_id, user_id, role)
-     VALUES ($1, $2, COALESCE($3, 'contributor'))
+     VALUES ($1, $2, COALESCE($3, 'developer'))
      ON CONFLICT (project_id, user_id) DO UPDATE SET role = COALESCE($3, project_members.role)
      RETURNING project_id, user_id, role, joined_at`,
     [id, targetUser.id, role]
@@ -71,15 +71,21 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getMembership(id, user.userId)
-  if (!membership) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-  if (!['owner', 'manager'].includes(membership.role)) {
-    return NextResponse.json({ error: 'Only owners and managers can remove members' }, { status: 403 })
+  if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  if (user.role !== 'admin' && membership?.role !== 'project_manager') {
+    return NextResponse.json({ error: 'Only project managers can remove members' }, { status: 403 })
   }
 
   const { userId } = await req.json()
   if (!userId) return NextResponse.json({ error: 'userId is required' }, { status: 400 })
-  if (userId === user.userId && membership.role === 'owner') {
-    return NextResponse.json({ error: 'The project owner cannot remove themselves' }, { status: 400 })
+  if (userId === user.userId && membership?.role === 'project_manager') {
+    const otherManager = await queryOne(
+      `SELECT 1 FROM project_members WHERE project_id = $1 AND role = 'project_manager' AND user_id != $2`,
+      [id, userId]
+    )
+    if (!otherManager) {
+      return NextResponse.json({ error: 'Assign another project manager before removing yourself' }, { status: 400 })
+    }
   }
 
   await query('DELETE FROM project_members WHERE project_id = $1 AND user_id = $2', [id, userId])

@@ -11,7 +11,8 @@ import TaskDrawer, { DrawerTask } from '@/components/TaskDrawer'
 import Avatar from '@/components/Avatar'
 import { STATUS_STYLES, STATUS_LABELS, PRIORITY_STYLES, STORY_POINTS } from '@/lib/badges'
 
-interface UserData { id: string; email: string }
+interface UserData { id: string; email: string; role?: string }
+interface UserSearchResult { id: string; email: string; display_name: string }
 
 interface Project {
   id: string
@@ -38,7 +39,8 @@ type Task = DrawerTask
 const PROJECT_STATUSES = ['planning', 'active', 'on_hold', 'completed', 'archived', 'cancelled']
 const PRIORITIES = ['critical', 'high', 'medium', 'low']
 const TASK_STATUSES = ['todo', 'in_progress', 'in_review', 'done', 'cancelled']
-const ROLES = ['owner', 'manager', 'contributor', 'reviewer', 'observer']
+const ROLES = ['project_manager', 'developer', 'viewer']
+const ROLE_LABELS: Record<string, string> = { project_manager: 'Project Manager', developer: 'Developer', viewer: 'Viewer', admin: 'Admin' }
 
 export default function ProjectDetailPage() {
   const router = useRouter()
@@ -66,8 +68,10 @@ export default function ProjectDetailPage() {
   const [savingTask, setSavingTask] = useState(false)
 
   const [showMemberModal, setShowMemberModal] = useState(false)
-  const [memberEmail, setMemberEmail] = useState('')
-  const [memberRole, setMemberRole] = useState('contributor')
+  const [memberQuery, setMemberQuery] = useState('')
+  const [memberResults, setMemberResults] = useState<UserSearchResult[]>([])
+  const [selectedMember, setSelectedMember] = useState<UserSearchResult | null>(null)
+  const [memberRole, setMemberRole] = useState('developer')
   const [memberError, setMemberError] = useState('')
   const [savingMember, setSavingMember] = useState(false)
 
@@ -77,8 +81,8 @@ export default function ProjectDetailPage() {
   const [editStatus, setEditStatus] = useState('')
   const [editPriority, setEditPriority] = useState('')
 
-  const canManage = myRole === 'owner' || myRole === 'manager'
-  const canEditTasks = ['owner', 'manager', 'contributor'].includes(myRole)
+  const canManage = myRole === 'admin' || myRole === 'project_manager'
+  const canEditTasks = ['admin', 'project_manager', 'developer'].includes(myRole)
 
   const loadProject = useCallback(async () => {
     const res = await fetch(`/api/projects/${projectId}`)
@@ -199,20 +203,32 @@ export default function ProjectDetailPage() {
     else toast.error('Failed to delete task')
   }
 
+  useEffect(() => {
+    if (selectedMember || !memberQuery.trim()) return
+    let active = true
+    const timer = setTimeout(() => {
+      fetch(`/api/users/search?q=${encodeURIComponent(memberQuery.trim())}`)
+        .then((r) => r.json())
+        .then((data) => { if (active) setMemberResults(data.users || []) })
+        .catch(() => {})
+    }, 250)
+    return () => { active = false; clearTimeout(timer) }
+  }, [memberQuery, selectedMember])
+
   const handleAddMember = async () => {
     setMemberError('')
-    if (!memberEmail.trim()) { setMemberError('Email is required'); return }
+    if (!selectedMember) { setMemberError('Search for and select a person'); return }
     setSavingMember(true)
     try {
       const res = await fetch(`/api/projects/${projectId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: memberEmail, role: memberRole }),
+        body: JSON.stringify({ email: selectedMember.email, role: memberRole }),
       })
       const data = await res.json()
       if (!res.ok) { setMemberError(data.error); return }
       await loadProject()
-      setShowMemberModal(false); setMemberEmail(''); setMemberRole('contributor')
+      setShowMemberModal(false); setMemberQuery(''); setSelectedMember(null); setMemberRole('developer')
       toast.success('Member added')
     } catch { setMemberError('Network error. Please try again.') }
     finally { setSavingMember(false) }
@@ -267,12 +283,10 @@ export default function ProjectDetailPage() {
                 className="px-3 py-1.5 border border-[#E5E7EB] dark:border-[#2A2A2A] text-[#0A0A0A] dark:text-white hover:border-[#0A0A0A] dark:hover:border-[#525252] text-[13px] font-medium rounded-lg transition-colors">
                 Edit
               </button>
-              {myRole === 'owner' && (
-                <button onClick={handleDeleteProject}
-                  className="px-3 py-1.5 border border-[#E5E7EB] dark:border-[#2A2A2A] text-[#E5002B] hover:border-[#E5002B] text-[13px] font-medium rounded-lg transition-colors">
-                  Delete
-                </button>
-              )}
+              <button onClick={handleDeleteProject}
+                className="px-3 py-1.5 border border-[#E5E7EB] dark:border-[#2A2A2A] text-[#E5002B] hover:border-[#E5002B] text-[13px] font-medium rounded-lg transition-colors">
+                Delete
+              </button>
             </div>
           )}
         </div>
@@ -303,7 +317,6 @@ export default function ProjectDetailPage() {
             <div className="bg-white dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-xl shadow-sm p-5 transition-all duration-150 hover:shadow-[0_4px_12px_rgba(0,0,0,0.10)]">
               <p className="text-xs text-[#9CA3AF] mb-1">Created</p>
               <p className="text-sm font-medium text-[#0A0A0A] dark:text-white">{new Date(project.created_at).toLocaleDateString()}</p>
-              <p className="text-[13px] text-[#6B7280] dark:text-[#9CA3AF] mt-1">by project owner</p>
             </div>
           </div>
         )}
@@ -374,7 +387,7 @@ export default function ProjectDetailPage() {
           <div>
             {canManage && (
               <div className="flex justify-end mb-4">
-                <button onClick={() => setShowMemberModal(true)}
+                <button onClick={() => { setMemberQuery(''); setSelectedMember(null); setMemberRole('developer'); setMemberError(''); setShowMemberModal(true) }}
                   className="px-3 py-1.5 bg-[#E5002B] hover:bg-[#CC0025] active:scale-[0.98] text-white text-[13px] font-medium rounded-lg transition-all duration-150">
                   Add Member
                 </button>
@@ -388,10 +401,10 @@ export default function ProjectDetailPage() {
                     <p className="text-[13px] text-[#0A0A0A] dark:text-white truncate">{m.display_name}</p>
                     <p className="text-xs text-[#9CA3AF] truncate">{m.email}</p>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F3F4F6] dark:bg-[#242424] text-[#374151] dark:text-[#D4D4D4] capitalize shrink-0">
-                    {m.role}
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F3F4F6] dark:bg-[#242424] text-[#374151] dark:text-[#D4D4D4] shrink-0">
+                    {ROLE_LABELS[m.role] || m.role}
                   </span>
-                  {canManage && m.role !== 'owner' && (
+                  {canManage && (
                     <button onClick={() => handleRemoveMember(m.user_id)}
                       className="text-[#9CA3AF] hover:text-[#E5002B] text-xs transition-colors shrink-0">
                       Remove
@@ -524,18 +537,50 @@ export default function ProjectDetailPage() {
               </div>
             )}
             <div className="space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Email</label>
-                <input value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)} placeholder="teammate@company.com"
-                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white placeholder-[#9CA3AF] text-[13px] focus:outline-none focus:border-[#E5002B]" />
-                <p className="text-xs text-[#9CA3AF] mt-1">They must have already signed in to Tasklynx once.</p>
+              <div className="relative">
+                <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Person</label>
+                {selectedMember ? (
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-[#F8F8F8] dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg">
+                    <div className="min-w-0">
+                      <p className="text-[13px] text-[#0A0A0A] dark:text-white truncate">{selectedMember.display_name}</p>
+                      <p className="text-xs text-[#9CA3AF] truncate">{selectedMember.email}</p>
+                    </div>
+                    <button onClick={() => { setSelectedMember(null); setMemberQuery('') }}
+                      className="shrink-0 ml-2 text-xs text-[#9CA3AF] hover:text-[#E5002B] transition-colors">
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input value={memberQuery} onChange={(e) => { setMemberQuery(e.target.value); if (!e.target.value.trim()) setMemberResults([]) }}
+                      placeholder="Search by name or email"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white placeholder-[#9CA3AF] text-[13px] focus:outline-none focus:border-[#E5002B]" />
+                    <p className="text-xs text-[#9CA3AF] mt-1">They must have already signed in to Tasklynx once.</p>
+                    {memberResults.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {memberResults
+                          .filter((u) => !members.some((m) => m.user_id === u.id))
+                          .map((u) => (
+                            <button key={u.id} onClick={() => { setSelectedMember(u); setMemberResults([]) }}
+                              className="w-full text-left px-3 py-2 hover:bg-[#F8F8F8] dark:hover:bg-[#242424] transition-colors">
+                              <p className="text-[13px] text-[#0A0A0A] dark:text-white truncate">{u.display_name}</p>
+                              <p className="text-xs text-[#9CA3AF] truncate">{u.email}</p>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Role</label>
                 <select value={memberRole} onChange={(e) => setMemberRole(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B] capitalize">
-                  {ROLES.filter((r) => r !== 'owner').map((r) => <option key={r} value={r}>{r}</option>)}
+                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B]">
+                  {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
+                {memberRole === 'viewer' && (
+                  <p className="text-xs text-[#9CA3AF] mt-1">Read access plus comments — no editing.</p>
+                )}
               </div>
             </div>
             <div className="flex gap-2 mt-6">
@@ -543,7 +588,7 @@ export default function ProjectDetailPage() {
                 className="flex-1 py-2.5 border border-[#E5E7EB] dark:border-[#2A2A2A] text-[#0A0A0A] dark:text-white text-[13px] font-medium rounded-lg hover:border-[#0A0A0A] dark:hover:border-[#525252] transition-colors">
                 Cancel
               </button>
-              <button onClick={handleAddMember} disabled={savingMember}
+              <button onClick={handleAddMember} disabled={savingMember || !selectedMember}
                 className="flex-1 py-2.5 bg-[#E5002B] hover:bg-[#CC0025] active:scale-[0.98] disabled:opacity-50 text-white text-[13px] font-medium rounded-lg transition-all duration-150">
                 {savingMember ? 'Adding...' : 'Add Member'}
               </button>

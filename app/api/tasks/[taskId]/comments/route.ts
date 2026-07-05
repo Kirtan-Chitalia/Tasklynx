@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser, query, queryOne } from '@/lib/db'
 
 async function getTaskWithMembership(taskId: string, userId: string) {
-  return queryOne<{ project_id: string; role: string }>(
+  return queryOne<{ project_id: string; role: string | null }>(
     `SELECT t.project_id, pm.role
      FROM tasks t
-     JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $2
+     LEFT JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $2
      WHERE t.id = $1`,
     [taskId, userId]
   )
@@ -17,7 +17,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ task
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const context = await getTaskWithMembership(taskId, user.userId)
-  if (!context) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  if (!context || (!context.role && user.role !== 'admin')) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  }
 
   const comments = await query(
     `SELECT c.id, c.task_id, c.user_id, c.message, c.created_at,
@@ -36,10 +38,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Any project member — project_manager, developer, or viewer — can comment.
   const context = await getTaskWithMembership(taskId, user.userId)
-  if (!context) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
-  if (!['owner', 'manager'].includes(context.role)) {
-    return NextResponse.json({ error: 'Only managers can comment' }, { status: 403 })
+  if (!context || (!context.role && user.role !== 'admin')) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 })
   }
 
   const { message } = await req.json()
