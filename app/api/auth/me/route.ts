@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuthToken, verifyToken } from '@/lib/auth'
 import { users } from '@/lib/store'
-import { ensureUserAndOrg } from '@/lib/db'
+import { ensureUserAndOrg, queryOne } from '@/lib/db'
 
 export async function GET() {
   const token = await getAuthToken()
@@ -21,6 +21,10 @@ export async function GET() {
   }
 
   const role = await ensureUserAndOrg(payload.userId, payload.email)
+  const totpRow = await queryOne<{ totp_enabled: boolean }>(
+    'SELECT totp_enabled FROM users WHERE id = $1',
+    [payload.userId]
+  )
 
   return NextResponse.json({
     user: {
@@ -29,6 +33,7 @@ export async function GET() {
       verified: user.verified,
       createdAt: user.createdAt,
       role,
+      totpEnabled: totpRow?.totp_enabled ?? false,
     }
   })
 }

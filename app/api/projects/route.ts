@@ -17,7 +17,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Admins see every project in the org; everyone else only sees projects
-  // they're a member of (as project_manager, developer, or viewer).
+  // they're a member of (as project_manager or developer).
   const projects = await query(
     `SELECT p.id, p.name, p.slug, p.description, p.status, p.priority,
             p.owner_id, p.created_at,

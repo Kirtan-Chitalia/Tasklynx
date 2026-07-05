@@ -12,7 +12,7 @@ const NAV_ITEMS: { key: NavKey; label: string; href: string; icon: (p: React.SVG
   { key: 'projects', label: 'Projects', href: '/projects', icon: ProjectsIcon },
   { key: 'my-tasks', label: 'My Tasks', href: '/dashboard', icon: TasksIcon },
   { key: 'team', label: 'Team', href: '/projects', icon: TeamIcon },
-  { key: 'settings', label: 'Settings', href: '/dashboard', icon: SettingsIcon },
+  { key: 'settings', label: 'Settings', href: '/settings', icon: SettingsIcon },
 ]
 
 interface SidebarProps {

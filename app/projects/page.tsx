@@ -156,7 +156,7 @@ export default function ProjectsPage() {
               <div>
                 <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Priority</label>
                 <select value={priority} onChange={(e) => setPriority(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B] transition-colors">
+                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] transition-colors">
                   <option value="critical">Critical</option>
                   <option value="high">High</option>
                   <option value="medium">Medium</option>

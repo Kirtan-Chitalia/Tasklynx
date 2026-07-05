@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Any project member — project_manager, developer, or viewer — can comment.
+  // Any project member — project_manager or developer — can comment.
   const context = await getTaskWithMembership(taskId, user.userId)
   if (!context || (!context.role && user.role !== 'admin')) {
     return NextResponse.json({ error: 'Task not found' }, { status: 404 })

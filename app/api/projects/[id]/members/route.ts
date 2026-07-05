@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const { email, role } = await req.json()
-  const validRoles = ['project_manager', 'developer', 'viewer']
+  const validRoles = ['project_manager', 'developer']
   if (!email || typeof email !== 'string') {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 })
   }

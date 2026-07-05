@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { users } from '@/lib/store'
-import { signToken, setAuthCookie } from '@/lib/auth'
+import { signToken, setAuthCookie, signPendingTotpToken, setPendingTotpCookie } from '@/lib/auth'
+import { getUserTotpStatus } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,6 +30,14 @@ export async function POST(req: NextRequest) {
     const passwordMatch = await bcrypt.compare(password, user.passwordHash)
     if (!passwordMatch) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+    }
+
+    const totpEnabled = await getUserTotpStatus(user.id, user.email)
+    if (totpEnabled) {
+      const pendingToken = signPendingTotpToken({ userId: user.id, email: user.email })
+      const res = NextResponse.json({ needsTotp: true })
+      setPendingTotpCookie(res, pendingToken)
+      return res
     }
 
     // Issue JWT and set HTTP-only cookie 🍪

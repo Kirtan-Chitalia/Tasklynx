@@ -21,10 +21,12 @@ export const DEFAULT_ORG_ID = '00000000-0000-0000-0000-000000000001'
 // this app has no separate "make someone admin" flow yet. Role is
 // re-derived from this list on every login, so editing the env var and
 // restarting takes effect immediately (including demotions).
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean)
+// admin@eccouncil.org is the DEMO-ONLY hardcoded superadmin (see lib/store.ts)
+// and always resolves to admin regardless of ADMIN_EMAILS.
+const ADMIN_EMAILS = [
+  'admin@eccouncil.org',
+  ...(process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
+]
 
 // Auth is currently backed by an in-memory store (lib/store.ts), not this
 // database, so a logged-in user may not have a row here yet. Upsert one
@@ -49,6 +51,12 @@ export async function ensureUserAndOrg(userId: string, email: string) {
     [userId, DEFAULT_ORG_ID, email, email.split('@')[0], role]
   )
   return row!.role
+}
+
+export async function getUserTotpStatus(userId: string, email: string) {
+  await ensureUserAndOrg(userId, email)
+  const row = await queryOne<{ totp_enabled: boolean }>('SELECT totp_enabled FROM users WHERE id = $1', [userId])
+  return row?.totp_enabled ?? false
 }
 
 export async function getCurrentUser() {

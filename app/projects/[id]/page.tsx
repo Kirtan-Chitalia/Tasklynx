@@ -39,8 +39,8 @@ type Task = DrawerTask
 const PROJECT_STATUSES = ['planning', 'active', 'on_hold', 'completed', 'archived', 'cancelled']
 const PRIORITIES = ['critical', 'high', 'medium', 'low']
 const TASK_STATUSES = ['todo', 'in_progress', 'in_review', 'done', 'cancelled']
-const ROLES = ['project_manager', 'developer', 'viewer']
-const ROLE_LABELS: Record<string, string> = { project_manager: 'Project Manager', developer: 'Developer', viewer: 'Viewer', admin: 'Admin' }
+const ROLES = ['project_manager', 'developer']
+const ROLE_LABELS: Record<string, string> = { project_manager: 'Project Manager', developer: 'Developer', admin: 'Admin' }
 
 export default function ProjectDetailPage() {
   const router = useRouter()
@@ -367,7 +367,7 @@ export default function ProjectDetailPage() {
                     {t.due_date && <span className="text-xs text-[#9CA3AF] shrink-0">{new Date(t.due_date).toLocaleDateString()}</span>}
                     <select value={t.status} disabled={!canEditTasks} onClick={(e) => e.stopPropagation()}
                       onChange={(e) => handleTaskStatusChange(t.id, e.target.value)}
-                      className={`shrink-0 px-2 py-1 rounded-full text-[11px] font-medium border-none focus:outline-none ${STATUS_STYLES[t.status]}`}>
+                      className={`shrink-0 px-2 py-1 rounded-full text-[11px] font-medium border-none hover:opacity-75 transition-opacity focus:outline-none ${STATUS_STYLES[t.status]}`}>
                       {TASK_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                     </select>
                     {canEditTasks && (
@@ -436,14 +436,14 @@ export default function ProjectDetailPage() {
                 <div>
                   <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Status</label>
                   <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B] capitalize">
+                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] capitalize">
                     {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Priority</label>
                   <select value={editPriority} onChange={(e) => setEditPriority(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B] capitalize">
+                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] capitalize">
                     {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
@@ -487,14 +487,14 @@ export default function ProjectDetailPage() {
                 <div>
                   <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Priority</label>
                   <select value={taskPriority} onChange={(e) => setTaskPriority(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B] capitalize">
+                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] capitalize">
                     {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Story Pts</label>
                   <select value={taskStoryPoints} onChange={(e) => setTaskStoryPoints(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B]">
+                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B]">
                     {STORY_POINTS.map((sp) => <option key={sp} value={sp}>{sp}</option>)}
                   </select>
                 </div>
@@ -507,7 +507,7 @@ export default function ProjectDetailPage() {
               <div>
                 <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Assignee</label>
                 <select value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B]">
+                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B]">
                   <option value="">Unassigned</option>
                   {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}
                 </select>
@@ -575,12 +575,9 @@ export default function ProjectDetailPage() {
               <div>
                 <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Role</label>
                 <select value={memberRole} onChange={(e) => setMemberRole(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B]">
+                  className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B]">
                   {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
-                {memberRole === 'viewer' && (
-                  <p className="text-xs text-[#9CA3AF] mt-1">Read access plus comments — no editing.</p>
-                )}
               </div>
             </div>
             <div className="flex gap-2 mt-6">

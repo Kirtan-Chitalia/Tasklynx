@@ -67,8 +67,10 @@ This starts Postgres only (schema auto-loaded on first boot). Run the app itself
 
 ## Roles
 
-- **Org role** (`users.role`): `admin` or `user`. Admins see and manage every project in the org regardless of membership; configured via `ADMIN_EMAILS`, not a management UI. Everyone else only sees projects they're a member of.
-- **Project role** (`project_members.role`): `project_manager`, `developer`, or `viewer`, scoped per project — the same person can be a project manager on one project and a developer on another. Project managers manage the project and its members; developers create/edit tasks; viewers can see everything and comment but not edit. Add someone to a project by searching for them by name or email (`/api/users/search`) and picking a role.
+- **Org role** (`users.role`): `admin` or `user`. Admins see and manage every project in the org regardless of membership; configured via `ADMIN_EMAILS` (plus a hardcoded demo superadmin, see below), not a management UI. Everyone else only sees projects they're a member of.
+- **Project role** (`project_members.role`): `project_manager` or `developer`, scoped per project — the same person can be a project manager on one project and a developer on another. Project managers create projects, manage the project and its members; developers create/edit tasks. Add someone to a project by searching for them by name or email (`/api/users/search`) and picking a role.
+- **Demo superadmin**: `admin@eccouncil.org` / `Admin@123` is hardcoded in `lib/store.ts` and always resolves to the `admin` org role — this is for demos only and must be removed before any real launch (see the comment at its definition).
+- **TOTP 2FA**: users can enable an authenticator app (Microsoft/Google Authenticator, Authy, etc.) from Settings. Once enabled, login requires the 6-digit code after the password.
 
 ## Project structure
 

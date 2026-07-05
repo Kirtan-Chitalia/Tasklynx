@@ -159,25 +159,25 @@ export default function TaskDrawer({ task, members, myRole, currentUserId, curre
             <div className="space-y-3 mb-5">
               <FieldRow label="Status">
                 <select disabled={!canEdit} value={task.status} onChange={(e) => patch({ status: e.target.value })}
-                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
+                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
                   {TASK_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                 </select>
               </FieldRow>
               <FieldRow label="Priority">
                 <select disabled={!canEdit} value={task.priority} onChange={(e) => patch({ priority: e.target.value })}
-                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white capitalize focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
+                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white capitalize hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
                   {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </FieldRow>
               <FieldRow label="Story Points">
                 <select disabled={!canEdit} value={task.story_points} onChange={(e) => patch({ storyPoints: Number(e.target.value) })}
-                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
+                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
                   {STORY_POINTS.map((sp) => <option key={sp} value={sp}>{sp} SP</option>)}
                 </select>
               </FieldRow>
               <FieldRow label="Assignee">
                 <select disabled={!canEdit} value={task.assignee_id || ''} onChange={(e) => patch({ assigneeId: e.target.value || null })}
-                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
+                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white hover:border-[#0A0A0A] dark:hover:border-[#525252] focus:outline-none focus:border-[#E5002B] disabled:opacity-60">
                   <option value="">Unassigned</option>
                   {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}
                 </select>
