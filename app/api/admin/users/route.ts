@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
-import { getCurrentUser, createDbUser, query, DEFAULT_ORG_ID, getUserByEmail } from '@/lib/db'
+import { getCurrentUser, ensureUserAndOrg, query, DEFAULT_ORG_ID } from '@/lib/db'
+import { users } from '@/lib/store'
 import { checkPasswordStrength } from '@/lib/password'
 
 // GET /api/admin/users — List all org users (admin only)
@@ -11,19 +12,17 @@ export async function GET() {
   if (currentUser.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const dbUsers = await query(
-    `SELECT id, email, display_name, role, profile_role, must_change_password, created_at FROM users WHERE org_id = $1 ORDER BY created_at DESC`,
+    `SELECT id, email, display_name, role, created_at FROM users WHERE org_id = $1 ORDER BY created_at DESC`,
     [DEFAULT_ORG_ID]
   )
 
-  const enriched = (dbUsers as { id: string; email: string; display_name: string; role: string; profile_role: string; must_change_password: boolean; created_at: string }[]).map((u) => {
+  // Enrich with in-memory store fields (profileRole, mustChangePassword)
+  const enriched = (dbUsers as { id: string; email: string; display_name: string; role: string; created_at: string }[]).map((u) => {
+    const storeUser = users.get(u.email)
     return {
-      id: u.id,
-      email: u.email,
-      display_name: u.display_name,
-      role: u.role,
-      profileRole: u.profile_role,
-      mustChangePassword: u.must_change_password,
-      created_at: u.created_at,
+      ...u,
+      profileRole: storeUser?.profileRole ?? (u.role === 'admin' ? 'admin' : 'developer'),
+      mustChangePassword: storeUser?.mustChangePassword ?? false,
     }
   })
 
@@ -57,8 +56,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
   }
 
-  const existingUser = await getUserByEmail(emailLower)
-  if (existingUser) {
+  if (users.has(emailLower)) {
     return NextResponse.json({ error: 'A user with this email already exists' }, { status: 409 })
   }
 
@@ -71,7 +69,18 @@ export async function POST(req: NextRequest) {
   const userId = uuidv4()
 
   // Admin-created users: pre-verified (no OTP needed), must change password on first login
-  await createDbUser(userId, emailLower, passwordHash, profileRole, true)
+  users.set(emailLower, {
+    id: userId,
+    email: emailLower,
+    passwordHash,
+    verified: true,
+    createdAt: new Date(),
+    mustChangePassword: true,
+    profileRole: profileRole as 'admin' | 'project_manager' | 'developer',
+  })
+
+  // Upsert into Postgres so project/task foreign keys resolve
+  await ensureUserAndOrg(userId, emailLower)
 
   return NextResponse.json({
     user: {

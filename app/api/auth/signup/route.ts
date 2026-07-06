@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
-import { otpStore } from '@/lib/store'
+import { users, otpStore } from '@/lib/store'
 import { generateOTP } from '@/lib/auth'
 import { checkPasswordStrength } from '@/lib/password'
 import { sendOTPEmail } from '@/lib/mail'
@@ -40,9 +40,9 @@ async function _originalPost(req: NextRequest) {
       return NextResponse.json({ error: `Only @${ALLOWED_EMAIL_DOMAIN} email addresses can sign up` }, { status: 403 })
     }
 
-    // if (users.has(email.toLowerCase())) {
-    //   return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
-    // }
+    if (users.has(email.toLowerCase())) {
+      return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
+    }
 
     // Password strength check
     const strength = checkPasswordStrength(password)
@@ -58,13 +58,13 @@ async function _originalPost(req: NextRequest) {
 
     // Store user (unverified)
     const userId = uuidv4()
-    // users.set(email.toLowerCase(), {
-    //   id: userId,
-    //   email: email.toLowerCase(),
-    //   passwordHash,
-    //   verified: false,
-    //   createdAt: new Date(),
-    // })
+    users.set(email.toLowerCase(), {
+      id: userId,
+      email: email.toLowerCase(),
+      passwordHash,
+      verified: false,
+      createdAt: new Date(),
+    })
 
     // Generate OTP (6 digits, 10 min expiry)
     const otp = generateOTP()

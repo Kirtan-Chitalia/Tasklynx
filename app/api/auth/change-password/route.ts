@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { getAuthToken, verifyToken } from '@/lib/auth'
-import { getUserByEmail, updateUserPassword } from '@/lib/db'
+import { users } from '@/lib/store'
 import { checkPasswordStrength } from '@/lib/password'
 
 // POST /api/auth/change-password — Change own password (authenticated users)
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const payload = verifyToken(token)
   if (!payload) return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 })
 
-  const user = await getUserByEmail(payload.email)
+  const user = users.get(payload.email)
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   const { currentPassword, newPassword } = await req.json()
@@ -36,7 +36,11 @@ export async function POST(req: NextRequest) {
   }
 
   const newHash = await bcrypt.hash(newPassword, 12)
-  await updateUserPassword(user.id, newHash)
+  users.set(payload.email, {
+    ...user,
+    passwordHash: newHash,
+    mustChangePassword: false,
+  })
 
   return NextResponse.json({ message: 'Password changed successfully' })
 }

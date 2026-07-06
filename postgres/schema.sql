@@ -42,8 +42,6 @@ CREATE TABLE users (
     status          VARCHAR(20) NOT NULL DEFAULT 'active'
                     CHECK (status IN ('active','inactive','pending','suspended')),
     password_hash   VARCHAR(255),
-    profile_role    VARCHAR(30) NOT NULL DEFAULT 'developer',
-    must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
     totp_secret     VARCHAR(64),
     totp_enabled    BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),

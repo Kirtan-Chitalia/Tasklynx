@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuthToken, verifyToken } from '@/lib/auth'
-import { getUserByEmail } from '@/lib/db'
+import { users } from '@/lib/store'
+import { ensureUserAndOrg, queryOne } from '@/lib/db'
 
 export async function GET() {
   const token = await getAuthToken()
@@ -14,10 +15,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 })
   }
 
-  const user = await getUserByEmail(payload.email)
+  const user = users.get(payload.email)
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
+
+  const role = await ensureUserAndOrg(payload.userId, payload.email)
+  const totpRow = await queryOne<{ totp_enabled: boolean }>(
+    'SELECT totp_enabled FROM users WHERE id = $1',
+    [payload.userId]
+  )
 
   return NextResponse.json({
     user: {
@@ -25,10 +32,10 @@ export async function GET() {
       email: user.email,
       verified: user.verified,
       createdAt: user.createdAt,
-      role: user.role,
-      profileRole: user.profileRole,
-      mustChangePassword: user.mustChangePassword,
-      totpEnabled: user.totpEnabled,
+      role,
+      profileRole: user.profileRole ?? (role === 'admin' ? 'admin' : 'developer'),
+      mustChangePassword: user.mustChangePassword ?? false,
+      totpEnabled: totpRow?.totp_enabled ?? false,
     }
   })
 }
