@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser, query, queryOne } from '@/lib/db'
 
 async function getTaskWithMembership(taskId: string, userId: string) {
-  return queryOne<{ project_id: string; assignee_id: string | null; role: string | null }>(
-    `SELECT t.project_id, t.assignee_id, pm.role
+  return queryOne<{ project_id: string; assignee_id: string | null; role: string | null; start_date: string | null; due_date: string | null }>(
+    `SELECT t.project_id, t.assignee_id, t.start_date, t.due_date, pm.role
      FROM tasks t
      LEFT JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $2
      WHERE t.id = $1`,
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ task
   }
 
   const task = await queryOne(
-    `SELECT t.id, t.title, t.description, t.status, t.priority, t.story_points, t.due_date,
+    `SELECT t.id, t.title, t.description, t.status, t.priority, t.story_points, t.start_date, t.due_date,
             t.assignee_id, t.created_by, t.created_at, t.updated_at,
             u.display_name AS assignee_name, u.email AS assignee_email
      FROM tasks t
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ta
     return NextResponse.json({ error: 'You do not have permission to edit this task' }, { status: 403 })
   }
 
-  const { title, description, status, priority, storyPoints, dueDate, assigneeId } = await req.json()
+  const { title, description, status, priority, storyPoints, startDate, dueDate, assigneeId } = await req.json()
   const validStatuses = ['todo', 'in_progress', 'in_review', 'done', 'cancelled']
   const validPriorities = ['critical', 'high', 'medium', 'low']
   const validStoryPoints = [1, 2, 3, 5, 8, 13, 21]
@@ -61,6 +61,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ta
   }
   if (storyPoints !== undefined && storyPoints !== null && !validStoryPoints.includes(storyPoints)) {
     return NextResponse.json({ error: 'Invalid story points' }, { status: 400 })
+  }
+
+  // Validate start_date <= due_date against the values the task will have after this
+  // update (fall back to the currently-stored dates when a field is not being changed).
+  const effectiveStart = startDate !== undefined ? startDate : context.start_date
+  const effectiveDue = dueDate !== undefined ? dueDate : context.due_date
+  if (effectiveStart && effectiveDue && new Date(effectiveStart) > new Date(effectiveDue)) {
+    return NextResponse.json({ error: 'Start date must be on or before the due date' }, { status: 400 })
   }
 
   if (assigneeId) {
@@ -80,13 +88,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ta
         status = COALESCE($4, status),
         priority = COALESCE($5, priority),
         story_points = COALESCE($8, story_points),
-        due_date = COALESCE($6, due_date),
+        start_date = $9,
+        due_date = $6,
         assignee_id = COALESCE($7, assignee_id),
         completed_at = CASE WHEN $4 = 'done' THEN NOW() ELSE completed_at END,
         updated_at = NOW()
      WHERE id = $1
-     RETURNING id, title, description, status, priority, story_points, due_date, assignee_id, created_by, created_at`,
-    [taskId, title, description, status, priority, dueDate, assigneeId, storyPoints]
+     RETURNING id, title, description, status, priority, story_points, start_date, due_date, assignee_id, created_by, created_at`,
+    [taskId, title, description, status, priority, effectiveDue, assigneeId, storyPoints, effectiveStart]
   )
 
   return NextResponse.json({ task })

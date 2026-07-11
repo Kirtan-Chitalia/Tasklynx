@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
   const tasks = await query(
-    `SELECT t.id, t.title, t.description, t.status, t.priority, t.story_points, t.due_date,
+    `SELECT t.id, t.title, t.description, t.status, t.priority, t.story_points, t.start_date, t.due_date,
             t.assignee_id, t.created_by, t.created_at, t.updated_at,
             u.display_name AS assignee_name, u.email AS assignee_email
      FROM tasks t
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'You do not have permission to create tasks in this project' }, { status: 403 })
   }
 
-  const { title, description, status, priority, storyPoints, dueDate, assigneeId } = await req.json()
+  const { title, description, status, priority, storyPoints, startDate, dueDate, assigneeId } = await req.json()
   if (!title || typeof title !== 'string' || !title.trim()) {
     return NextResponse.json({ error: 'Task title is required' }, { status: 400 })
   }
@@ -58,6 +58,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (storyPoints !== undefined && storyPoints !== null && !validStoryPoints.includes(storyPoints)) {
     return NextResponse.json({ error: 'Invalid story points' }, { status: 400 })
   }
+  if (startDate && dueDate && new Date(startDate) > new Date(dueDate)) {
+    return NextResponse.json({ error: 'Start date must be on or before the due date' }, { status: 400 })
+  }
 
   if (assigneeId) {
     const assigneeMembership = await getMembership(id, assigneeId)
@@ -67,10 +70,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const task = await queryOne(
-    `INSERT INTO tasks (project_id, title, description, status, priority, story_points, due_date, assignee_id, created_by)
-     VALUES ($1, $2, $3, COALESCE($4, 'todo'), COALESCE($5, 'medium'), COALESCE($9, 3), $6, $7, $8)
-     RETURNING id, title, description, status, priority, story_points, due_date, assignee_id, created_by, created_at`,
-    [id, title.trim(), description || null, status, priority, dueDate || null, assigneeId || null, user.userId, storyPoints]
+    `INSERT INTO tasks (project_id, title, description, status, priority, story_points, start_date, due_date, assignee_id, created_by)
+     VALUES ($1, $2, $3, COALESCE($4, 'todo'), COALESCE($5, 'medium'), COALESCE($9, 3), $10, $6, $7, $8)
+     RETURNING id, title, description, status, priority, story_points, start_date, due_date, assignee_id, created_by, created_at`,
+    [id, title.trim(), description || null, status, priority, dueDate || null, assigneeId || null, user.userId, storyPoints, startDate || null]
   )
 
   return NextResponse.json({ task }, { status: 201 })

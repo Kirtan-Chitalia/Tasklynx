@@ -16,6 +16,7 @@ export interface DrawerTask {
   status: string
   priority: string
   story_points: number
+  start_date: string | null
   due_date: string | null
   assignee_id: string | null
   assignee_name: string | null
@@ -183,8 +184,15 @@ export default function TaskDrawer({ task, members, myRole, currentUserId, curre
                   {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}
                 </select>
               </FieldRow>
+              <FieldRow label="Start Date">
+                <input type="date" disabled={!canEdit} value={task.start_date ? task.start_date.slice(0, 10) : ''}
+                  max={task.due_date ? task.due_date.slice(0, 10) : undefined}
+                  onChange={(e) => patch({ startDate: e.target.value || null })}
+                  className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white focus:outline-none focus:border-[#E5002B] disabled:opacity-60" />
+              </FieldRow>
               <FieldRow label="Due Date">
                 <input type="date" disabled={!canEdit} value={task.due_date ? task.due_date.slice(0, 10) : ''}
+                  min={task.start_date ? task.start_date.slice(0, 10) : undefined}
                   onChange={(e) => patch({ dueDate: e.target.value || null })}
                   className="text-[13px] bg-transparent border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-md px-2 py-1 text-[#0A0A0A] dark:text-white focus:outline-none focus:border-[#E5002B] disabled:opacity-60" />
               </FieldRow>
