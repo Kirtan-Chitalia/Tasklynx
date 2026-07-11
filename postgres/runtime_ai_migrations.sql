@@ -156,3 +156,46 @@ CREATE OR REPLACE TRIGGER trg_sprints_updated_at
 CREATE OR REPLACE TRIGGER trg_milestones_updated_at
   BEFORE UPDATE ON milestones
   FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+
+-- =============================================================================
+-- DEVOPS DEPLOY AGENT (Phase 1)
+-- Adds a project-level deadline and a deployments table that stores the deploy
+-- config (repo url + target domain, settable any time) and the lifecycle of
+-- each deploy. All idempotent and safe to run at application startup.
+-- =============================================================================
+
+-- Project-level deadline used to gate the deploy prompt (a project becomes
+-- deployable once it is completed and its deadline has passed).
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'deadline') THEN
+    ALTER TABLE projects ADD COLUMN deadline TIMESTAMPTZ;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS deployments (
+  id              UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id      UUID        NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  repo_url        TEXT        NOT NULL DEFAULT '',
+  branch          VARCHAR(200) NOT NULL DEFAULT 'main',
+  target_domain   VARCHAR(300),
+  provider        VARCHAR(30) NOT NULL DEFAULT 'vercel'
+                  CHECK (provider IN ('vercel', 'netlify', 'docker')),
+  status          VARCHAR(30) NOT NULL DEFAULT 'draft'
+                  CHECK (status IN ('draft', 'queued', 'building', 'live', 'failed', 'cancelled')),
+  deploy_url      TEXT,
+  provider_ref    TEXT,
+  provider_project_id TEXT,
+  logs            TEXT,
+  requested_by    UUID        REFERENCES users(id) ON DELETE SET NULL,
+  confirmed_by    UUID        REFERENCES users(id) ON DELETE SET NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- One row per project holds the current deploy config / latest deploy. Older
+-- rows (once we keep history) can coexist; the app reads the most recent.
+CREATE INDEX IF NOT EXISTS idx_deployments_project ON deployments(project_id, created_at DESC);
+
+CREATE OR REPLACE TRIGGER trg_deployments_updated_at
+  BEFORE UPDATE ON deployments
+  FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();

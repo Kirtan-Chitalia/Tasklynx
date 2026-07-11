@@ -10,6 +10,7 @@ import KanbanBoard from '@/components/KanbanBoard'
 import TaskDrawer, { DrawerTask } from '@/components/TaskDrawer'
 import Avatar from '@/components/Avatar'
 import AITab from '@/components/AITab'
+import DeployTab from '@/components/DeployTab'
 import { STATUS_STYLES, STATUS_LABELS, PRIORITY_STYLES, STORY_POINTS } from '@/lib/badges'
 
 interface UserData { id: string; email: string; role?: string }
@@ -54,7 +55,7 @@ export default function ProjectDetailPage() {
   const [myRole, setMyRole] = useState<string>('')
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'tasks' | 'members' | 'ai'>('overview')
+  const [tab, setTab] = useState<'overview' | 'tasks' | 'members' | 'ai' | 'deploy'>('overview')
   const [taskView, setTaskView] = useState<'list' | 'kanban'>('kanban')
   const [drawerTask, setDrawerTask] = useState<Task | null>(null)
 
@@ -297,12 +298,12 @@ export default function ProjectDetailPage() {
         </div>
 
         <div className="flex gap-1 bg-[#F3F4F6] dark:bg-[#1A1A1A] rounded-lg p-1 mb-6 w-fit">
-          {(['overview', 'tasks', 'members', 'ai'] as const).map((t) => (
+          {(['overview', 'tasks', 'members', 'ai', 'deploy'] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-colors capitalize ${
                 tab === t ? 'bg-white dark:bg-[#242424] text-[#0A0A0A] dark:text-white shadow-sm border border-[#E5E7EB] dark:border-[#2A2A2A]' : 'text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#0A0A0A] dark:hover:text-white'
               }`}>
-              {t === 'ai' ? '✦ AI' : t}
+              {t === 'ai' ? '✦ AI' : t === 'deploy' ? '🚀 Deploy' : t}
             </button>
           ))}
         </div>
@@ -429,6 +430,8 @@ export default function ProjectDetailPage() {
             </div>
           </div>
         )}
+
+        {tab === 'deploy' && <DeployTab projectId={projectId} />}
       </div>
 
       {editingProject && (

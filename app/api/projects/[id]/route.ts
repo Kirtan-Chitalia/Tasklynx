@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
   const project = await queryOne(
-    `SELECT id, name, slug, description, status, priority, owner_id, created_by, created_at, updated_at
+    `SELECT id, name, slug, description, status, priority, deadline, owner_id, created_by, created_at, updated_at
      FROM projects WHERE id = $1`,
     [id]
   )
@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Only project managers can edit this project' }, { status: 403 })
   }
 
-  const { name, description, status, priority } = await req.json()
+  const { name, description, status, priority, deadline } = await req.json()
   const validStatuses = ['planning', 'active', 'on_hold', 'completed', 'archived', 'cancelled']
   const validPriorities = ['critical', 'high', 'medium', 'low']
   if (status && !validStatuses.includes(status)) {
@@ -54,16 +54,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
   }
 
+  // deadline: undefined = leave unchanged, null/'' = clear, otherwise set.
+  const deadlineProvided = deadline !== undefined
+  const deadlineValue = deadline ? String(deadline) : null
+
   const project = await queryOne(
     `UPDATE projects SET
         name = COALESCE($2, name),
         description = COALESCE($3, description),
         status = COALESCE($4, status),
         priority = COALESCE($5, priority),
+        deadline = CASE WHEN $7 THEN $6 ELSE deadline END,
         updated_at = NOW()
      WHERE id = $1
-     RETURNING id, name, slug, description, status, priority, owner_id, created_at, updated_at`,
-    [id, name, description, status, priority]
+     RETURNING id, name, slug, description, status, priority, deadline, owner_id, created_at, updated_at`,
+    [id, name, description, status, priority, deadlineValue, deadlineProvided]
   )
 
   return NextResponse.json({ project })
