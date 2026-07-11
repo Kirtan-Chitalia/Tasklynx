@@ -64,6 +64,7 @@ export default function ProjectDetailPage() {
   const [taskPriority, setTaskPriority] = useState('medium')
   const [taskStoryPoints, setTaskStoryPoints] = useState(3)
   const [taskAssignee, setTaskAssignee] = useState('')
+  const [taskStartDate, setTaskStartDate] = useState('')
   const [taskDueDate, setTaskDueDate] = useState('')
   const [taskError, setTaskError] = useState('')
   const [savingTask, setSavingTask] = useState(false)
@@ -145,13 +146,16 @@ export default function ProjectDetailPage() {
 
   const openTaskModal = () => {
     setTaskTitle(''); setTaskDesc(''); setTaskPriority('medium'); setTaskStoryPoints(3)
-    setTaskAssignee(''); setTaskDueDate(''); setTaskError('')
+    setTaskAssignee(''); setTaskStartDate(''); setTaskDueDate(''); setTaskError('')
     setShowTaskModal(true)
   }
 
   const handleCreateTask = async () => {
     setTaskError('')
     if (!taskTitle.trim()) { setTaskError('Task title is required'); return }
+    if (taskStartDate && taskDueDate && new Date(taskStartDate) > new Date(taskDueDate)) {
+      setTaskError('Start date must be on or before the due date'); return
+    }
     setSavingTask(true)
     try {
       const res = await fetch(`/api/projects/${projectId}/tasks`, {
@@ -159,7 +163,7 @@ export default function ProjectDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: taskTitle, description: taskDesc, priority: taskPriority, storyPoints: taskStoryPoints,
-          assigneeId: taskAssignee || undefined, dueDate: taskDueDate || undefined,
+          assigneeId: taskAssignee || undefined, startDate: taskStartDate || undefined, dueDate: taskDueDate || undefined,
         }),
       })
       const data = await res.json()
@@ -493,7 +497,7 @@ export default function ProjectDetailPage() {
                 <textarea value={taskDesc} onChange={(e) => setTaskDesc(e.target.value)} rows={2}
                   className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B] resize-none" />
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Priority</label>
                   <select value={taskPriority} onChange={(e) => setTaskPriority(e.target.value)}
@@ -509,8 +513,13 @@ export default function ProjectDetailPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Start date</label>
+                  <input type="date" value={taskStartDate} max={taskDueDate || undefined} onChange={(e) => setTaskStartDate(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B]" />
+                </div>
+                <div>
                   <label className="block text-[13px] font-medium text-[#0A0A0A] dark:text-white mb-1.5">Due date</label>
-                  <input type="date" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)}
+                  <input type="date" value={taskDueDate} min={taskStartDate || undefined} onChange={(e) => setTaskDueDate(e.target.value)}
                     className="w-full px-3 py-2.5 bg-white dark:bg-[#141414] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-lg text-[#0A0A0A] dark:text-white text-[13px] focus:outline-none focus:border-[#E5002B]" />
                 </div>
               </div>

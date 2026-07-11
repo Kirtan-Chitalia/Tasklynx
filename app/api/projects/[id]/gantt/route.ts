@@ -9,6 +9,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const membership = await queryOne('SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2', [id, user.userId])
   if (!membership && user.role !== 'admin') return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
+  // A task's "dependencies" are its predecessors: tasks that must complete before
+  // it can start. task_dependencies stores (predecessor_id, successor_id), so for
+  // each successor we aggregate its predecessor ids.
   const tasks = await query(
     `SELECT t.id, t.title, t.start_date, t.due_date AS end_date, COALESCE(t.progress, 0) AS progress, t.parent_task_id,
             u.display_name AS assignee_name,
@@ -16,10 +19,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
      FROM tasks t
      LEFT JOIN users u ON u.id = t.assignee_id
      LEFT JOIN (
-       SELECT task_id, array_agg(dependency_id) AS deps
+       SELECT successor_id AS task_id, array_agg(predecessor_id) AS deps
        FROM task_dependencies
-       WHERE project_id = $1
-       GROUP BY task_id
+       GROUP BY successor_id
      ) td ON td.task_id = t.id
      WHERE t.project_id = $1
      ORDER BY t.start_date NULLS LAST, t.due_date NULLS LAST`,
@@ -50,16 +52,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'start_date must be <= end_date' }, { status: 400 })
   }
 
-  // Validation: if task has dependencies, ensure start_date is after deps' due_date
+  // Validation: if task has dependencies (predecessors), ensure its start_date is
+  // after the latest predecessor due_date. Predecessors are rows where this task
+  // is the successor.
   const deps = await query(
-    `SELECT td.dependency_id, t.due_date FROM task_dependencies td JOIN tasks t ON t.id = td.dependency_id WHERE td.task_id = $1 AND td.project_id = $2`,
+    `SELECT t.due_date FROM task_dependencies td JOIN tasks t ON t.id = td.predecessor_id WHERE td.successor_id = $1 AND t.project_id = $2`,
     [taskId, id]
   )
   if (deps && deps.length && start) {
     const latestDepDue = deps
-      .map((r: any) => r.due_date)
-      .filter(Boolean)
-      .map((d: string) => new Date(d).getTime())
+      .map((r: { due_date: string | null }) => r.due_date)
+      .filter((d): d is string => Boolean(d))
+      .map((d) => new Date(d).getTime())
       .reduce((max: number, cur: number) => Math.max(max, cur), 0)
     if (latestDepDue > 0 && new Date(start).getTime() < latestDepDue) {
       return NextResponse.json({ error: 'start_date must be after dependencies due dates' }, { status: 400 })
