@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import GanttView from '@/components/GanttView'
+import DeployTab from '@/components/DeployTab'
 import Skeleton from '@/components/Skeleton'
 
 interface UserData {
@@ -15,6 +16,7 @@ export default function GanttPage() {
   const router = useRouter()
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([])
   const [projectId, setProjectId] = useState('')
+  const [showDeploy, setShowDeploy] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
 
   useEffect(() => {
@@ -52,14 +54,22 @@ export default function GanttPage() {
       <div className="p-4">
         <h2 className="text-xl font-semibold mb-4">Gantt Timeline</h2>
         <div className="mb-4 flex items-center gap-2">
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="px-2 py-1 border rounded">
+          <select value={projectId} onChange={(e) => { setProjectId(e.target.value); setShowDeploy(false) }} className="px-2 py-1 border rounded">
             <option value="">Select project</option>
             {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+          {projectId && (
+            <button
+              onClick={() => setShowDeploy((v) => !v)}
+              className="px-3 py-1.5 bg-[#E5002B] hover:bg-[#CC0025] active:scale-[0.98] text-white text-[13px] font-medium rounded-lg transition-all duration-150"
+            >
+              🚀 Deploy
+            </button>
+          )}
         </div>
 
         {projectId ? (
-          <GanttView projectId={projectId} />
+          showDeploy ? <DeployTab projectId={projectId} /> : <GanttView projectId={projectId} />
         ) : (
           <div className="text-sm text-gray-500">Choose a project to view its Gantt timeline.</div>
         )}
