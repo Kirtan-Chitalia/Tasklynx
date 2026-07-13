@@ -370,7 +370,13 @@ export default function ProjectDetailPage() {
                       <p className="text-[13px] text-[#0A0A0A] dark:text-white truncate">{t.title}</p>
                       {t.assignee_name && <p className="text-xs text-[#9CA3AF]">{t.assignee_name}</p>}
                     </div>
-                    {t.due_date && <span className="text-xs text-[#9CA3AF] shrink-0">{new Date(t.due_date).toLocaleDateString()}</span>}
+                    {(t.start_date || t.due_date) && (
+                      <span className="text-xs text-[#9CA3AF] shrink-0">
+                        {t.start_date ? new Date(t.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                        {t.start_date && t.due_date ? ' - ' : ''}
+                        {t.due_date ? new Date(t.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                      </span>
+                    )}
                     <select value={t.status} disabled={!canEditTasks} onClick={(e) => e.stopPropagation()}
                       onChange={(e) => handleTaskStatusChange(t.id, e.target.value)}
                       className={`shrink-0 px-2 py-1 rounded-full text-[11px] font-medium border-none hover:opacity-75 transition-opacity focus:outline-none ${STATUS_STYLES[t.status]}`}>

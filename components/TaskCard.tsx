@@ -13,6 +13,7 @@ export interface KanbanTask {
   priority: string
   story_points: number
   due_date: string | null
+  start_date: string | null
   assignee_id: string | null
   assignee_name: string | null
 }
@@ -63,9 +64,11 @@ export default function TaskCard({ task, onOpen, dimmed }: TaskCardProps) {
         ) : (
           <span className="text-[11px] text-[#9CA3AF]">Unassigned</span>
         )}
-        {task.due_date && (
+        {(task.start_date || task.due_date) && (
           <span className="text-[11px] text-[#9CA3AF] flex items-center gap-1">
-            📅 {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            📅 {task.start_date ? new Date(task.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+            {task.start_date && task.due_date ? ' - ' : ''}
+            {task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
           </span>
         )}
       </div>

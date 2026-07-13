@@ -40,13 +40,17 @@ export default function GanttView({ projectId }: { projectId: string }) {
   }, [projectId])
 
   const { minDate, maxDate, daysSpan } = useMemo(() => {
-    const starts = tasks.map((t) => t.start_date ? parseISO(t.start_date) : null).filter(Boolean) as Date[]
-    const ends = tasks.map((t) => t.end_date ? parseISO(t.end_date) : null).filter(Boolean) as Date[]
-    const all = [...starts, ...ends]
+    const all = tasks.flatMap(t => {
+      const start = t.start_date ? parseISO(t.start_date) : (t.end_date ? parseISO(t.end_date) : new Date())
+      const end = t.end_date ? parseISO(t.end_date) : start
+      return [start, end]
+    })
     const min = all.length ? new Date(Math.min(...all.map((d) => d.getTime()))) : new Date()
     const max = all.length ? new Date(Math.max(...all.map((d) => d.getTime()))) : new Date(min.getTime() + 7 * 24 * 3600 * 1000)
-    const span = Math.max(1, differenceInCalendarDays(max, min) + 1)
-    return { minDate: min, maxDate: max, daysSpan: span }
+    const minPadded = new Date(min.getTime() - 3 * 24 * 3600 * 1000)
+    const maxPadded = new Date(max.getTime() + 7 * 24 * 3600 * 1000)
+    const span = Math.max(1, differenceInCalendarDays(maxPadded, minPadded) + 1)
+    return { minDate: minPadded, maxDate: maxPadded, daysSpan: span }
   }, [tasks])
 
   const dayWidth = 12 // px per day
@@ -81,7 +85,7 @@ export default function GanttView({ projectId }: { projectId: string }) {
       const delta = e.key === 'ArrowRight' ? days : -days
       if (e.altKey) {
         // resize-left
-        const start = t.start_date ? new Date(t.start_date) : new Date()
+        const start = t.start_date ? new Date(t.start_date) : (t.end_date ? new Date(t.end_date) : new Date())
         const end = t.end_date ? new Date(t.end_date) : start
         const newStart = new Date(start.getTime() + delta * 24 * 3600 * 1000)
         if (newStart <= end) {
@@ -89,7 +93,7 @@ export default function GanttView({ projectId }: { projectId: string }) {
         }
       } else if (e.ctrlKey || e.metaKey) {
         // resize-right
-        const start = t.start_date ? new Date(t.start_date) : new Date()
+        const start = t.start_date ? new Date(t.start_date) : (t.end_date ? new Date(t.end_date) : new Date())
         const end = t.end_date ? new Date(t.end_date) : start
         const newEnd = new Date(end.getTime() + delta * 24 * 3600 * 1000)
         if (newEnd >= start) {
@@ -97,7 +101,7 @@ export default function GanttView({ projectId }: { projectId: string }) {
         }
       } else {
         // move
-        const start = t.start_date ? new Date(t.start_date) : new Date()
+        const start = t.start_date ? new Date(t.start_date) : (t.end_date ? new Date(t.end_date) : new Date())
         const end = t.end_date ? new Date(t.end_date) : start
         const newStart = new Date(start.getTime() + delta * 24 * 3600 * 1000)
         const newEnd = new Date(end.getTime() + delta * 24 * 3600 * 1000)
@@ -176,13 +180,13 @@ export default function GanttView({ projectId }: { projectId: string }) {
               </defs>
               {tasks.map((t, i) => {
                 if (!t.dependencies || !t.dependencies.length) return null
-                const toX = Math.round(Math.max(0, (differenceInCalendarDays(t.start_date ? parseISO(t.start_date) : minDate, minDate))) * dayWidth)
+                const toX = Math.round(Math.max(0, (differenceInCalendarDays(t.start_date ? parseISO(t.start_date) : (t.end_date ? parseISO(t.end_date) : new Date()), minDate))) * dayWidth)
                 const toY = i * rowHeight + rowHeight / 2
                 return t.dependencies.map((depId) => {
                   const depIndex = idToIndex.get(depId)
                   if (depIndex === undefined) return null
                   const dep = tasks[depIndex]
-                  const depStart = dep.start_date ? parseISO(dep.start_date) : minDate
+                  const depStart = dep.start_date ? parseISO(dep.start_date) : (dep.end_date ? parseISO(dep.end_date) : new Date())
                   const depEnd = dep.end_date ? parseISO(dep.end_date) : depStart
                   const depEndX = Math.round((differenceInCalendarDays(depEnd, minDate) + 1) * dayWidth)
                   const depY = depIndex * rowHeight + rowHeight / 2
@@ -194,7 +198,8 @@ export default function GanttView({ projectId }: { projectId: string }) {
               })}
             </svg>
             {tasks.map((t) => {
-              const start = t.start_date ? parseISO(t.start_date) : minDate
+              const hasExplicitDates = t.start_date != null || t.end_date != null
+              const start = t.start_date ? parseISO(t.start_date) : (t.end_date ? parseISO(t.end_date) : new Date())
               const end = t.end_date ? parseISO(t.end_date) : start
               const offset = Math.max(0, differenceInCalendarDays(start, minDate))
               const width = Math.max(1, differenceInCalendarDays(end, start) + 1)
@@ -208,8 +213,8 @@ export default function GanttView({ projectId }: { projectId: string }) {
                     <div className="relative h-8">
                       <div className="absolute left-0 top-2 h-4 w-full bg-transparent">
                         <div
-                          className="absolute top-0 h-4 bg-blue-500 rounded"
-                          style={{ left: offset * dayWidth, width: width * dayWidth, opacity: 0.95 }}
+                          className={`absolute top-0 h-4 rounded ${hasExplicitDates ? 'bg-blue-500' : 'bg-[#9CA3AF] border border-[#6B7280] border-dashed'}`}
+                          style={{ left: offset * dayWidth, width: width * dayWidth, opacity: hasExplicitDates ? 0.95 : 0.6 }}
                         >
                           <div
                             tabIndex={0}
