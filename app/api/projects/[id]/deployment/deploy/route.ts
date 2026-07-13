@@ -65,7 +65,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
     const deployment = await queryOne(
       `UPDATE deployments
-         SET status = $2, provider_ref = $3, provider_project_id = $4, deploy_url = $5
+         SET status = $2, provider_ref = $3, provider_project_id = $4, deploy_url = $5, logs = $6
        WHERE id = $1
        RETURNING *`,
       [
@@ -74,6 +74,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
         result.ref,
         result.providerProjectId,
         result.deployUrl,
+        result.logs ?? null,
       ],
     )
     return NextResponse.json({ deployment }, { status: 202 })

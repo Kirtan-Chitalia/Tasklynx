@@ -55,9 +55,41 @@ export function validateDomain(domain: string | null | undefined): string | null
   if (!trimmed) return null
   const stripped = trimmed.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
   if (!DOMAIN_RE.test(stripped)) {
-    throw createDeployError('Enter a valid domain, e.g. app.example.com.', 'INVALID_REPO')
+    throw createDeployError('Enter a valid deployment link, e.g. https://your-app.vercel.app.', 'INVALID_REPO')
   }
   return stripped
+}
+
+// A *.vercel.app subdomain — the free-tier deployment link. The subdomain is the
+// Vercel project name, so naming the project after it lands the deploy on exactly
+// that URL (no DNS/custom-domain setup required).
+const VERCEL_APP_RE = /^([a-z0-9-]{1,63})\.vercel\.app$/
+
+/** Turn any string into a Vercel-safe project name (lowercase, dash-separated). */
+export function slugifyProjectName(name: string): string {
+  return (
+    name.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100) ||
+    'tasklynx-app'
+  )
+}
+
+export interface DeployTarget {
+  vercelName: string          // the Vercel project name to deploy under
+  customDomain: string | null // a non-vercel.app domain to attach after deploy
+}
+
+/**
+ * Resolve the Vercel deploy target from the user-supplied deployment link.
+ *   - "myapp.vercel.app"   → deploy under project "myapp" (production URL = myapp.vercel.app)
+ *   - "app.example.com"    → deploy under the fallback name, then attach the custom domain
+ */
+export function resolveDeployTarget(deploymentLink: string | null, fallbackName: string): DeployTarget {
+  const domain = validateDomain(deploymentLink)
+  const fallback = slugifyProjectName(fallbackName)
+  if (!domain) return { vercelName: fallback, customDomain: null }
+  const vercelApp = domain.match(VERCEL_APP_RE)
+  if (vercelApp) return { vercelName: vercelApp[1], customDomain: null }
+  return { vercelName: fallback, customDomain: domain }
 }
 
 // ─── Provider selection ──────────────────────────────────────────────────────
@@ -84,16 +116,39 @@ export interface StartDeployInput {
 /**
  * Kick off a deployment. Returns as soon as the provider accepts the build —
  * the caller persists the returned ref and polls checkStatus() for completion.
+ *
+ * The deployment link drives *where* the project lands: a *.vercel.app link is
+ * used as the Vercel project name (so the production URL matches it exactly),
+ * while a custom domain is attached to the project once the build is created.
  */
 export async function startDeploy(input: StartDeployInput): Promise<CreateDeploymentResult> {
   const repo = parseRepoRef(input.repoUrl, input.branch)
-  const targetDomain = validateDomain(input.targetDomain)
+  const target = resolveDeployTarget(input.targetDomain, input.projectName)
   const provider = getProvider(input.provider)
-  return provider.createDeployment({
+
+  const result = await provider.createDeployment({
     repo,
-    projectName: input.projectName,
-    targetDomain,
+    projectName: target.vercelName,
+    targetDomain: target.customDomain,
   })
+
+  // Best-effort custom-domain attach: the deployment itself already succeeded on
+  // its *.vercel.app URL, so a domain failure (e.g. pending DNS) is a warning,
+  // not a hard failure.
+  if (target.customDomain && result.providerProjectId && provider.attachDomain) {
+    try {
+      await provider.attachDomain(result.providerProjectId, target.customDomain)
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'unknown error'
+      return {
+        ...result,
+        logs: `Deployed, but attaching ${target.customDomain} failed: ${detail}. ` +
+          `Add the domain in Vercel and point its DNS, then redeploy.`,
+      }
+    }
+  }
+
+  return result
 }
 
 export async function checkStatus(

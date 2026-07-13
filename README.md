@@ -70,6 +70,44 @@ SMTP_PASS=
 SMTP_FROM=
 ```
 
+### Vercel Deployments (Deploy button)
+
+The Deploy tab (project detail page and the Gantt page) hands a project off to
+the DevOps deploy agent, which deploys the project's GitHub repo to Vercel. It
+works on Vercel's **free Hobby plan** — no paid features required.
+
+One-time setup:
+
+1. Create a free Vercel account at https://vercel.com/signup (the Hobby plan is
+   free).
+2. Connect the **Vercel GitHub integration** to the account/team so Vercel can
+   pull the repos you want to deploy: https://vercel.com/account/login-connections
+   (or install the app from https://github.com/apps/vercel).
+3. Create a personal access token: Vercel dashboard → **Settings → Tokens →
+   Create Token**. Copy it.
+4. Add it to the server environment (root `.env` for Docker, or `.env.local` for
+   `npm run dev`):
+
+   ```bash
+   VERCEL_TOKEN=your_vercel_token
+   # Only if the repos live under a Vercel team (not your personal scope):
+   VERCEL_TEAM_ID=team_xxx
+   ```
+
+Using the Deploy button:
+
+- **GitHub repository URL** (required): `https://github.com/owner/name` — must be
+  a repo the connected Vercel GitHub integration can access.
+- **Vercel deployment link** (required): where the project should go live.
+  - A `*.vercel.app` link — e.g. `https://my-app.vercel.app` — deploys straight
+    to that URL for free. The subdomain becomes the Vercel project name, so pick
+    one that isn't already taken.
+  - A custom domain — e.g. `https://app.example.com` — deploys and then attaches
+    the domain to the Vercel project (you still point the domain's DNS at Vercel).
+- The **Confirm & Deploy** button unlocks once the project is marked *completed*
+  and past its deadline. Deploys run asynchronously; the tab polls until the
+  build is `live` or `failed`.
+
 ## Run Locally
 
 Install dependencies:
