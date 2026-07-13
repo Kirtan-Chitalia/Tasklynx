@@ -146,7 +146,7 @@ export default function DeployTab({ projectId }: { projectId: string }) {
           </p>
         )}
         {dep?.target_domain && (
-          <p className="text-xs text-[#9CA3AF] mt-1">Target domain: {dep.target_domain}</p>
+          <p className="text-xs text-[#9CA3AF] mt-1">Deployment link: {dep.target_domain}</p>
         )}
         {dep?.logs && (
           <pre className="mt-3 text-xs text-[#991B1B] bg-[#FEF2F2] dark:bg-[#2A1215] rounded-lg p-3 whitespace-pre-wrap break-words">{dep.logs}</pre>
@@ -156,9 +156,9 @@ export default function DeployTab({ projectId }: { projectId: string }) {
       {/* Config */}
       <div className="bg-white dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#2A2A2A] rounded-xl shadow-sm p-5 space-y-4">
         <h3 className="text-[13px] font-semibold text-[#0A0A0A] dark:text-white">Configuration</h3>
-        <p className="text-xs text-[#9CA3AF] -mt-2">Deploys to Vercel. You can set this at any time; the deploy button unlocks once the project is completed and past its deadline.</p>
+        <p className="text-xs text-[#9CA3AF] -mt-2">Deploys to Vercel. Fill in the GitHub repository and the Vercel deployment link where the project should go live. The deploy button unlocks once the project is completed and past its deadline.</p>
 
-        <Field label="GitHub repository URL">
+        <Field label="GitHub repository URL *">
           <input value={repoUrl} disabled={!canManage} onChange={(e) => setRepoUrl(e.target.value)}
             placeholder="https://github.com/owner/name" className={inputCls} />
         </Field>
@@ -167,9 +167,9 @@ export default function DeployTab({ projectId }: { projectId: string }) {
             <input value={branch} disabled={!canManage} onChange={(e) => setBranch(e.target.value)}
               placeholder="main" className={inputCls} />
           </Field>
-          <Field label="Target domain (optional)">
+          <Field label="Vercel deployment link *">
             <input value={domain} disabled={!canManage} onChange={(e) => setDomain(e.target.value)}
-              placeholder="app.example.com" className={inputCls} />
+              placeholder="https://your-app.vercel.app" className={inputCls} />
           </Field>
         </div>
         <Field label="Project deadline (gates deploy)">
@@ -183,8 +183,8 @@ export default function DeployTab({ projectId }: { projectId: string }) {
               className="px-4 py-2 border border-[#E5E7EB] dark:border-[#2A2A2A] text-[#0A0A0A] dark:text-white text-[13px] font-medium rounded-lg hover:border-[#0A0A0A] dark:hover:border-[#525252] transition-colors disabled:opacity-50">
               {saving ? 'Saving…' : 'Save config'}
             </button>
-            <button onClick={handleDeploy} disabled={deploying || inFlight || !state?.deployable || !repoUrl}
-              title={!state?.deployable ? state?.blockedReason ?? '' : ''}
+            <button onClick={handleDeploy} disabled={deploying || inFlight || !state?.deployable || !repoUrl || !domain}
+              title={!state?.deployable ? state?.blockedReason ?? '' : !repoUrl || !domain ? 'Fill in the GitHub repository URL and the Vercel deployment link first.' : ''}
               className="px-4 py-2 bg-[#E5002B] hover:bg-[#CC0025] active:scale-[0.98] text-white text-[13px] font-medium rounded-lg transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed">
               {deploying ? 'Starting…' : inFlight ? 'Deploying…' : 'Confirm & Deploy'}
             </button>

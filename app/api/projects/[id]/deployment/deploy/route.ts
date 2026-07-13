@@ -2,7 +2,7 @@
 // The hard, outward-facing action. Gated three ways:
 //   1. only project managers / admins,
 //   2. project must be completed (and past its deadline if one is set),
-//   3. a repo URL must already be configured.
+//   3. a repo URL and Vercel deployment link must already be configured.
 // The PM clicking "Confirm & Deploy" is the deliberate confirmation step.
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -40,6 +40,9 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const config = await getLatestDeployment(projectId)
   if (!config || !config.repo_url) {
     return NextResponse.json({ error: 'Set the GitHub repository URL before deploying.' }, { status: 400 })
+  }
+  if (!config.target_domain) {
+    return NextResponse.json({ error: 'Set the Vercel deployment link before deploying.' }, { status: 400 })
   }
   if (config.status === 'queued' || config.status === 'building') {
     return NextResponse.json({ error: 'A deploy is already in progress.' }, { status: 409 })
